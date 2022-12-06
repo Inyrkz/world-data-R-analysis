@@ -1,0 +1,326 @@
+---
+title: "Analysis of the World dataset"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+## 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Install the packages
+```{r eval=FALSE}
+# r setup, eval=FALSE
+install.packages('tidyverse')
+install.packages('plotrix')
+install.packages('ggplot2')
+install.packages("dplyr")
+
+```
+
+
+## Load the Packages
+```{r}
+library(tidyverse)  # package for data analysis in R
+library(plotrix)  # contains various functions for plotting
+```
+
+
+
+## 1. Load Data
+
+Load the world.csv dataset and store it as an object "world.data".
+
+```{r}
+world.data <- read_csv('world csv new.csv')
+# view first few rows
+head(world.data)
+```
+
+
+
+## 2. Create frequency table of the OECD variable
+
+```{r}
+# create frequency table with the table() function
+freq_table <- table(world.data$oecd)
+# calculate the percentages
+percentage <- freq_table / sum(freq_table) * 100
+# convert the frequency table to a dataframe
+ft.oecd <- as.data.frame(freq_table)
+# add the Percentage column to the dataframe
+ft.oecd$Percentage <- percentage
+# rename the first column to "OECD Member?"
+names(ft.oecd)[1] <- "OECD Member?"
+ft.oecd
+```
+ 
+ 
+ 
+## 3. Frequency Table Observation
+
+* 30 countries are OECD members.
+* 161 countries are not OECD members.
+* 15.7% of the countries are OECD members.
+* 84.3% of the countries are not OECD members.
+
+
+
+## 4. Barchart of the OECD variable
+Use the ggplot library in tidyverse to create a bar chart
+
+```{r}
+ggplot(data=world.data) +
+  geom_bar(mapping=aes(x=oecd), fill='darkblue') + 
+  # Add title to the plot
+  labs(title='How Many Countries Have OECD Membership?') + 
+  # centralize the title
+  theme(plot.title = ggplot2::element_text(hjust = 0.5)) + 
+  # Add xlabel to the x-axis
+  xlab('OECD membership') +
+  # Add ylabel to the y-axis
+  ylab('Number of countries')
+```
+
+
+
+## 5. OECD member states and non-democratic states
+#### OECD member states
+- Australia
+- Austria
+- Belgium
+
+#### Non-democratic states
+- Afghanistan
+- Algeria
+- Angola
+
+
+
+## 6. Statistical Description of the `gdp_10_thou` variable.
+
+```{r}
+# print summary statistic of the `gdp_10_thou` variable
+summary(world.data$gdp_10_thou)
+```
+  
+  
+```{r}
+# check the standard deviation & ignore missing values
+sd(world.data$gdp_10_thou, na.rm=TRUE)
+```
+
+* The minimum value is 0.0090
+* The maximum value is 4.7354
+* The median value is 0.1897
+* The mean value is 0.6018
+* The 1st quartile value is 0.0503
+* The 3rd quartile value is 0.6320
+* The standard deviation is 0.9433982
+
+
+
+## 7. Left or Right Skewed?
+
+Since the mean is greater than the median ($6,018 > $ 1,897), the data is positively skewed (skewed to the right).
+
+
+
+## 8. Histogram  of the per capita GDP variable
+
+```{r warning=FALSE}
+# r setup, warning=FALSE
+ggplot(data=world.data) +
+  # Plot histogram
+  geom_histogram(mapping=ggplot2::aes(x=gdp_10_thou), fill='darkblue', binwidth=0.4) + 
+  labs(title='Histogram of the Per Captia GDP Variable') + 
+  # centralize the title
+  theme(plot.title=ggplot2::element_text(hjust = 0.5)) + 
+  # Add xlabel to the x-axis
+  xlab('Per capita GDP (in 10,000 US dollars)') +
+  # Add ylabel to the y-axis
+  ylab('Number of countries')
+```
+
+
+
+## 9. The two countries with per capita GDP over $40,000
+
+```{r}
+# filter dataframe to view countries whose GDP is over $40,000
+world.data %>% filter(gdp_10_thou>4)
+```
+
+* The two countries with per capita GDP over $40,000 are Luxembourg and Norway.
+
+
+
+## 10.  Calculate the standard error of the per capita GDP variable.
+
+```{r warning=FALSE}
+# r setup, warning=FALSE
+# use the plotrix package to calculate the standard error
+print(std.error(world.data$gdp_10_thou))
+
+# or manually calculate it with the formular: standard deviation/square root of the sample size
+# sample size is the total number of rows minus the number of missing values in the gdp_10thou variable
+
+standard_error <- sd(world.data$gdp_10_thou, na.rm=TRUE)/sqrt(nrow(world.data)-sum(is.na(world.data$gdp_10_thou)))
+print(standard_error)
+```
+
+The standard error is 0.07091015
+
+
+
+## 11. Calculate the 95% Confidence Interval
+
+Formula: 
+Confidence Interval = sample mean +- margin of error
+margin of error = z* x standard error
+
+For 95% confidence interval, z* = 1.96
+
+Therefore, 95% confidence interval = sample mean +- 1.96 * stardard error 
+
+
+```{r}
+# calculate the margin of error using the standard error
+margin_of_error <- 1.96*standard_error
+# calculate the mean of the gdp_10_thou variable
+sample_mean <- mean(world.data$gdp_10_thou, na.rm=TRUE)
+
+# Print out the results
+cat("The margin of error is", margin_of_error, '\n')
+cat("The sample mean is", sample_mean, '\n')
+
+# Calculate the confidence interval range
+confidence_interval_upper <- sample_mean + margin_of_error
+confidence_interval_lower <- sample_mean - margin_of_error
+
+# Print out the results
+cat("The upper confidence interval is", confidence_interval_upper, '\n')
+cat("The lower confidence interval is", confidence_interval_lower, '\n\n')
+cat("The 95% confidence interval ranges from", confidence_interval_lower, '-', confidence_interval_upper)
+```
+
+
+
+## 12. Histograms of per capita GDP variable. One for democracies and the other for non-democracies.
+
+```{r warning=FALSE}
+# r setup, warning=FALSE
+ggplot2::ggplot(data=world.data) +
+  ggplot2::geom_histogram(mapping=ggplot2::aes(x=gdp_10_thou), fill='darkblue', binwidth=0.4) + 
+  ggplot2::labs(title='Histogram of the Per Captia GDP Variable For Democracies and Non-democracies ') + 
+  # centralize the title
+  ggplot2::theme(plot.title = element_text(hjust = 0.5)) + 
+  ggplot2::xlab('Per capita GDP (in 10,000 US dollars)') +
+  ggplot2::ylab('Number of countries') + 
+  # create a facet_wrap of the democ_regime variable
+  ggplot2::facet_wrap(~democ_regime)
+```
+
+
+
+## 13. Fix Histogram
+
+I have to get rid of the missing values in the democ_regime variable represented by 'NA'. Then create a new
+variable called 'dem.dum' based on the variable 'democ_regime'. It will be more descriptive than the 'democ_regime' variable.
+
+
+```{r}
+# remove NA values in the democ_regime variable
+dem.gdp <- world.data %>% drop_na('democ_regime')
+# create a new column called dem.dum in the dem.gdp dataframe
+# the value will be 'Democracy' if the value in the democ_regime variable is 'Yes'
+# otherwise it will be 'Autocracy'
+dem.gdp <- transform(dem.gdp, dem.dum=ifelse(democ_regime=='Yes', 'Democracy', 'Autocracy'))
+# view a few rows of the new dataframe
+head(dem.gdp)
+```
+
+Now plot the histogram with this cleaned dataframe.
+
+```{r warning=FALSE}
+# r setup, warning=FALSE
+ggplot(data=dem.gdp) +
+  geom_histogram(mapping=aes(x=gdp_10_thou), fill='darkblue', binwidth=0.4) + 
+  labs(title='Histogram of the Per Captia GDP Variable For Democracies and Non-democracies ') + 
+  # centralize the title
+  theme(plot.title = element_text(hjust=0.5)) + 
+  xlab('Per capita GDP (in 10,000 US dollars)') +
+  ylab('Number of countries') + 
+  facet_wrap(~dem.dum)
+```
+
+
+
+## 14. Mean of per capita GDP for democracies & the 95 % confidence interval
+
+```{r}
+# filter data to get democratic countries only
+democracies <- dem.gdp %>% filter(dem.dum=='Democracy')
+head(democracies)
+```
+
+
+```{r}
+# create a function to calculate the mean and the 95% confidence interval
+# the function will take in a dataframe as an argument
+mean_and_95_CI <- function(dataframe) {
+  # calculate the standard error
+  standard_error <- std.error(dataframe$gdp_10_thou)
+  # calculate the margin of error
+  margin_of_error <- 1.96 * standard_error
+  # calculate the sample mean
+  sample_mean <- mean(dataframe$gdp_10_thou, na.rm=TRUE)
+  
+  # Display results
+  cat("The standard_error is", standard_error, '\n')
+  cat("The margin of error is", margin_of_error, '\n')
+  cat("The sample mean is", sample_mean, '\n')
+  
+  # Calculate the confidence interval range
+  confidence_interval_upper <- sample_mean + margin_of_error
+  confidence_interval_lower <- sample_mean - margin_of_error
+  
+  # Print out the result
+  cat("The upper confidence interval is", confidence_interval_upper, '\n')
+  cat("The lower confidence interval is", confidence_interval_lower, '\n\n')
+  cat("The 95% confidence interval ranges from", confidence_interval_lower, '-', confidence_interval_upper)
+}
+
+# invoke function for democratic countries 
+# by passing the democracies dataframe
+mean_and_95_CI(democracies)
+
+```
+
+
+
+## 15.  Mean of per capita GDP & the 95 % Confidence Interval For Autocracies
+
+```{r}
+# filter data to get autocratic countries only
+autocracies <- dem.gdp %>% filter(dem.dum=='Autocracy')
+head(autocracies)
+```
+
+```{r}
+# invoke function for autocratic countries
+# by passing the autocracies dataframe
+mean_and_95_CI(autocracies)
+```
+
+
+* The mean of per capita GDP for democracies is 0.8013927.
+* The 95% confidence interval for democracies ranges from 0.5984288 - 1.004357.
+
+
+* The mean of per capita GDP for autocracies (non-democracies) is 0.2819132.
+* The 95% confidence interval for autocracies ranges from 0.1549886 - 0.4088379.
+
